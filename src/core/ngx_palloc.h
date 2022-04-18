@@ -32,9 +32,9 @@ typedef void (*ngx_pool_cleanup_pt)(void *data);
 typedef struct ngx_pool_cleanup_s  ngx_pool_cleanup_t;
 
 struct ngx_pool_cleanup_s {
-    ngx_pool_cleanup_pt   handler;
-    void                 *data;
-    ngx_pool_cleanup_t   *next;
+    ngx_pool_cleanup_pt   handler; //清理内存池的回调函数
+    void                 *data; // 指向存储的数据地址
+    ngx_pool_cleanup_t   *next; // 下一个cleanup_t
 };
 
 
@@ -55,11 +55,11 @@ typedef struct {
 
 
 struct ngx_pool_s {
-    ngx_pool_data_t       d;
-    size_t                max;
+    ngx_pool_data_t       d; // 内存池的元数据
+    size_t                max; // 最大每次可分配的内存
     ngx_pool_t           *current;
-    ngx_chain_t          *chain;
-    ngx_pool_large_t     *large;
+    ngx_chain_t          *chain; //缓存池的链表
+    ngx_pool_large_t     *large; //大存储区域地址
     ngx_pool_cleanup_t   *cleanup;
     ngx_log_t            *log;
 };
