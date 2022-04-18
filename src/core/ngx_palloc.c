@@ -18,17 +18,23 @@ ngx_create_pool(size_t size, ngx_log_t *log)
 {
     ngx_pool_t  *p;
 
+    // 根據不同的系統，進行不同的編譯
+    // 根据alignment，请求size大小的内存
     p = ngx_memalign(NGX_POOL_ALIGNMENT, size, log);
     if (p == NULL) {
         return NULL;
     }
 
+    // 内存池的前面空间为 ngx_pool_t 的数据类型
+    // 存储内存池的元数据
     p->d.last = (u_char *) p + sizeof(ngx_pool_t);
     p->d.end = (u_char *) p + size;
     p->d.next = NULL;
     p->d.failed = 0;
 
+    // 计算可用空间
     size = size - sizeof(ngx_pool_t);
+    // NGX_MAX_ALLOC_FROM_POOL 与 size之间选取最大的值
     p->max = (size < NGX_MAX_ALLOC_FROM_POOL) ? size : NGX_MAX_ALLOC_FROM_POOL;
 
     p->current = p;
@@ -48,6 +54,7 @@ ngx_destroy_pool(ngx_pool_t *pool)
     ngx_pool_large_t    *l;
     ngx_pool_cleanup_t  *c;
 
+    // pool里面数据的清除由handler处理对应的每一块
     for (c = pool->cleanup; c; c = c->next) {
         if (c->handler) {
             ngx_log_debug1(NGX_LOG_DEBUG_ALLOC, pool->log, 0,
@@ -56,6 +63,7 @@ ngx_destroy_pool(ngx_pool_t *pool)
         }
     }
 
+    // 对于大块数据，则由ngx_free处理
     for (l = pool->large; l; l = l->next) {
 
         ngx_log_debug1(NGX_LOG_DEBUG_ALLOC, pool->log, 0, "free: %p", l->alloc);
@@ -83,6 +91,7 @@ ngx_destroy_pool(ngx_pool_t *pool)
 
 #endif
 
+    // 将pool每一块元数据都清除
     for (p = pool, n = pool->d.next; /* void */; p = n, n = n->d.next) {
         ngx_free(p);
 
@@ -99,6 +108,7 @@ ngx_reset_pool(ngx_pool_t *pool)
     ngx_pool_t        *p;
     ngx_pool_large_t  *l;
 
+    // 将大块内存都用ngx_free清除
     for (l = pool->large; l; l = l->next) {
         if (l->alloc) {
             ngx_free(l->alloc);
@@ -107,6 +117,7 @@ ngx_reset_pool(ngx_pool_t *pool)
 
     pool->large = NULL;
 
+    // 重置每个内存池的last到内存数据开始地址
     for (p = pool; p; p = p->d.next) {
         p->d.last = (u_char *) p + sizeof(ngx_pool_t);
     }
@@ -124,6 +135,9 @@ ngx_palloc(ngx_pool_t *pool, size_t size)
         p = pool->current;
 
         do {
+            // 寻找从last开始，16位对齐的地址
+            // 若地址在end的范围内，则返回该地址
+            // 否则，从下一块内存池中寻找
             m = ngx_align_ptr(p->d.last, NGX_ALIGNMENT);
 
             if ((size_t) (p->d.end - m) >= size) {
@@ -136,9 +150,11 @@ ngx_palloc(ngx_pool_t *pool, size_t size)
 
         } while (p);
 
+        // 没有遍历到可用的内存池，从一块新的内存池中申请
         return ngx_palloc_block(pool, size);
     }
 
+    // size过大，从大号alloc中申请内存
     return ngx_palloc_large(pool, size);
 }
 
@@ -153,6 +169,7 @@ ngx_pnalloc(ngx_pool_t *pool, size_t size)
 
         p = pool->current;
 
+        // 寻找可用地址，不需要对齐
         do {
             m = p->d.last;
 
@@ -166,9 +183,11 @@ ngx_pnalloc(ngx_pool_t *pool, size_t size)
 
         } while (p);
 
+        // 没有遍历到可用的内存池，从一块新的内存池中申请
         return ngx_palloc_block(pool, size);
     }
 
+    // 从大号palloc中申请
     return ngx_palloc_large(pool, size);
 }
 
@@ -180,13 +199,16 @@ ngx_palloc_block(ngx_pool_t *pool, size_t size)
     size_t       psize;
     ngx_pool_t  *p, *new, *current;
 
+    // pool结尾的地址 - 开头的地址 = 获得pool的大小
     psize = (size_t) (pool->d.end - (u_char *) pool);
 
+    // 申请一个新pool
     m = ngx_memalign(NGX_POOL_ALIGNMENT, psize, pool->log);
     if (m == NULL) {
         return NULL;
     }
 
+    // 定义新pool的元数据
     new = (ngx_pool_t *) m;
 
     new->d.end = m + psize;
@@ -199,6 +221,9 @@ ngx_palloc_block(ngx_pool_t *pool, size_t size)
 
     current = pool->current;
 
+    // 从当前的内存池开始寻找
+    // 每新增一个pool， failed会加一
+    //当failed 大于 4时，更新current，这样避免pool的链条大于4个
     for (p = current; p->d.next; p = p->d.next) {
         if (p->d.failed++ > 4) {
             current = p->d.next;
@@ -220,6 +245,7 @@ ngx_palloc_large(ngx_pool_t *pool, size_t size)
     ngx_uint_t         n;
     ngx_pool_large_t  *large;
 
+    // 申请大内存
     p = ngx_alloc(size, pool->log);
     if (p == NULL) {
         return NULL;
@@ -227,6 +253,9 @@ ngx_palloc_large(ngx_pool_t *pool, size_t size)
 
     n = 0;
 
+    // 遍历大内存链条，若发现空的alloc，则将数据地址assign到alloc
+    // 若遍历到了第四个都没找到空的元数据
+    // 则break
     for (large = pool->large; large; large = large->next) {
         if (large->alloc == NULL) {
             large->alloc = p;
@@ -238,6 +267,8 @@ ngx_palloc_large(ngx_pool_t *pool, size_t size)
         }
     }
 
+    // 新生成一个pool large 元数据
+    // 并添加到pool large链表的首位
     large = ngx_palloc(pool, sizeof(ngx_pool_large_t));
     if (large == NULL) {
         ngx_free(p);
