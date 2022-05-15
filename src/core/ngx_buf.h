@@ -17,45 +17,51 @@ typedef void *            ngx_buf_tag_t;
 
 typedef struct ngx_buf_s  ngx_buf_t;
 
+// 缓冲区数据结构
+// 主要用于存储大块的内存
+// 可以自定义管理业务层的缓冲区链表
+// 也可以将空闲的缓冲区链表返还给内存池pool->chain结构
 struct ngx_buf_s {
-    u_char          *pos;
-    u_char          *last;
-    off_t            file_pos;
-    off_t            file_last;
+    u_char          *pos; // 待处理数据的起始位置
+    u_char          *last; // 待处理数据的结尾位置
+    off_t            file_pos; // 处理文件时，待处理文件指针的起始位置
+    off_t            file_last; // 处理文件时，待处理文件指针的结束位置
 
     u_char          *start;         /* start of buffer */
     u_char          *end;           /* end of buffer */
-    ngx_buf_tag_t    tag;
-    ngx_file_t      *file;
-    ngx_buf_t       *shadow;
+    ngx_buf_tag_t    tag;  // 缓冲区标记地址，一个void指针
+    ngx_file_t      *file; // 引用的文件
+    ngx_buf_t       *shadow; //
 
 
+    // 以下使用了位域的方法
     /* the buf's content could be changed */
-    unsigned         temporary:1;
+    unsigned         temporary:1; //为 1 时，内存可修改
 
     /*
      * the buf's content is in a memory cache or in a read only memory
      * and must not be changed
      */
-    unsigned         memory:1;
+    unsigned         memory:1; // 为 1 时，内存只读
 
     /* the buf's content is mmap()ed and must not be changed */
-    unsigned         mmap:1;
+    unsigned         mmap:1; // 为 1 时，mmap映射过来的内存，不可修改
 
-    unsigned         recycled:1;
-    unsigned         in_file:1;
-    unsigned         flush:1;
-    unsigned         sync:1;
-    unsigned         last_buf:1;
-    unsigned         last_in_chain:1;
+    unsigned         recycled:1; // 为 1 时，内存可回收
+    unsigned         in_file:1; // 为 1 时，表示处理的是文件
+    unsigned         flush:1; // 为 1 时，表示需要进行flush操作
+    unsigned         sync:1; // 为 1 时，表示可以进行同步操作，容易引起堵塞
+    unsigned         last_buf:1; // 为 1 时，表示为缓冲区链表ngx_chain_t 上最后一块 待处理 的buf
+    unsigned         last_in_chain:1; // 为 1 时，表示为缓冲区链表ngx_chain_t 上最后一块buf
 
-    unsigned         last_shadow:1;
-    unsigned         temp_file:1;
+    unsigned         last_shadow:1; // 为 1 时，表示是否是最后一个影子缓冲区
+    unsigned         temp_file:1; // 为 1 时，表示当前缓冲区是否属于临时文件
 
     /* STUB */ int   num;
 };
 
-
+// 缓冲区ngx_buf_t, 通过ngx_chain_t链表结构进行关联和管理
+// 缓冲区是nginx用的非常多的数据结构，主要用于接收和输出HTTP的数据结构
 struct ngx_chain_s {
     ngx_buf_t    *buf;
     ngx_chain_t  *next;
