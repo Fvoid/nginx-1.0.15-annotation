@@ -17,21 +17,23 @@
 
 typedef struct ngx_queue_s  ngx_queue_t;
 
+// ngx_queue主要通过前后指针来元素
+// 而具体的元素数据通过 ngx_queue_data 计算元素的起始位置
 struct ngx_queue_s {
     ngx_queue_t  *prev;
     ngx_queue_t  *next;
 };
 
-
+// 初始化queue
 #define ngx_queue_init(q)                                                     \
     (q)->prev = q;                                                            \
     (q)->next = q
 
-
+// 判断 queue head 是否等于 head->prev
 #define ngx_queue_empty(h)                                                    \
     (h == (h)->prev)
 
-
+// 将 x 插入
 #define ngx_queue_insert_head(h, x)                                           \
     (x)->next = (h)->next;                                                    \
     (x)->next->prev = x;                                                      \
