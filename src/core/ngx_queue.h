@@ -33,7 +33,11 @@ struct ngx_queue_s {
 #define ngx_queue_empty(h)                                                    \
     (h == (h)->prev)
 
-// 将 x 插入
+// 将 x 插入头部
+// x的下一个为原来的 head
+// 更新原来的 head 的 prev 为 x
+// 更新 x 的 prev 为 头部指针
+// 更新头部指针的 next 为 x
 #define ngx_queue_insert_head(h, x)                                           \
     (x)->next = (h)->next;                                                    \
     (x)->next->prev = x;                                                      \
@@ -43,7 +47,12 @@ struct ngx_queue_s {
 
 #define ngx_queue_insert_after   ngx_queue_insert_head
 
-
+// x 插入queue的尾部
+// h 的 prev 指向 queue 的尾部
+// 更新 x 的 prev 为旧尾部
+// 更新旧尾部的 next 为x
+// 更新 x 的 next 为 h
+// 更新 h 的新尾部为 x
 #define ngx_queue_insert_tail(h, x)                                           \
     (x)->prev = (h)->prev;                                                    \
     (x)->prev->next = x;                                                      \
@@ -87,7 +96,9 @@ struct ngx_queue_s {
 
 #endif
 
-
+// h 为原来的queue
+// a 为queue的分割节点
+// n 为新的queue head
 #define ngx_queue_split(h, q, n)                                              \
     (n)->prev = (h)->prev;                                                    \
     (n)->prev->next = n;                                                      \
@@ -103,7 +114,10 @@ struct ngx_queue_s {
     (h)->prev = (n)->prev;                                                    \
     (h)->prev->next = h;
 
-
+// q 为 queue的内存地址
+// type为使用queue的结构体
+// link为结构体中变量名称
+// q - 偏移量 = 结构体在内存中的起始位置
 #define ngx_queue_data(q, type, link)                                         \
     (type *) ((u_char *) q - offsetof(type, link))
 
