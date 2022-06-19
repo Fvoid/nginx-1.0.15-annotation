@@ -12,22 +12,23 @@
 #include <ngx_config.h>
 #include <ngx_core.h>
 
-
+// 每个bucket的长度会根据元素的个数的实际长度决定
+// 并且每个bucket之间通过Null指针进行分割
 typedef struct {
-    void             *value;
-    u_short           len;
-    u_char            name[1];
+    void             *value;  // 指向value的指针
+    u_short           len;    // key 的长度
+  u_char            name[1];  // 指向key的第一个地址，key长度为可变
 } ngx_hash_elt_t;
 
 
 typedef struct {
-    ngx_hash_elt_t  **buckets;
-    ngx_uint_t        size;
+  ngx_hash_elt_t  **buckets;  // hash 表的桶指针的地址
+  ngx_uint_t        size;    //  hash 表的桶的个数
 } ngx_hash_t;
 
 
 typedef struct {
-    ngx_hash_t        hash;
+  ngx_hash_t        hash;   // 
     void             *value;
 } ngx_hash_wildcard_t;
 
@@ -50,15 +51,15 @@ typedef struct {
 
 
 typedef struct {
-    ngx_hash_t       *hash;
-    ngx_hash_key_pt   key;
+  ngx_hash_t       *hash;  // hash数组结构指针
+  ngx_hash_key_pt   key; // 计算key散列的函数
 
-    ngx_uint_t        max_size;
-    ngx_uint_t        bucket_size;
+  ngx_uint_t        max_size;  // 最大元素个数
+  ngx_uint_t        bucket_size; // 桶的存储空间大小
 
-    char             *name;
-    ngx_pool_t       *pool;
-    ngx_pool_t       *temp_pool;
+  char             *name; // hash表的名称
+  ngx_pool_t       *pool; // 内存池
+  ngx_pool_t       *temp_pool; // 临时内存池
 } ngx_hash_init_t;
 
 

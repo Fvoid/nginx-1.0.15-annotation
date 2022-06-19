@@ -8,7 +8,8 @@
 #include <ngx_config.h>
 #include <ngx_core.h>
 
-
+// 从hash表中读取一个元素
+// 
 void *
 ngx_hash_find(ngx_hash_t *hash, ngx_uint_t key, u_char *name, size_t len)
 {
@@ -19,12 +20,14 @@ ngx_hash_find(ngx_hash_t *hash, ngx_uint_t key, u_char *name, size_t len)
     ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, 0, "hf:\"%*s\"", len, name);
 #endif
 
+    // 定位哪一个bucket
     elt = hash->buckets[key % hash->size];
 
     if (elt == NULL) {
         return NULL;
     }
 
+    // 当bucket有元素时，执行
     while (elt->value) {
         if (len != (size_t) elt->len) {
             goto next;
