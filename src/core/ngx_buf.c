@@ -8,7 +8,9 @@
 #include <ngx_config.h>
 #include <ngx_core.h>
 
-
+// 创建临时buf
+// 先在pool中申请一个内存存放ngx_buf_t 的结构数据
+// 根据size的大小申请数据内存，并记录地址到buf->start
 ngx_buf_t *
 ngx_create_temp_buf(ngx_pool_t *pool, size_t size)
 {
@@ -44,6 +46,9 @@ ngx_create_temp_buf(ngx_pool_t *pool, size_t size)
 }
 
 
+// 从ngx_pool_t 中获取一个ngx_chain_t 对象
+// 若pool->chain 没有对象
+// 则在pool中分配一个ngx_chain_t 结构数据，并返回该object的地址
 ngx_chain_t *
 ngx_alloc_chain_link(ngx_pool_t *pool)
 {
@@ -64,7 +69,12 @@ ngx_alloc_chain_link(ngx_pool_t *pool)
     return cl;
 }
 
-
+// 在pool中申请创建buffer
+// ngx_bufs_t中有num，buffer的个数，size，单个buffer的大小
+// 先从pool中申请总buffer大小
+// 然后对于每一个buffer的结构数据单独申请
+// 而每一个的buffer数据内存则从总数据内存 p 中切割申请
+// 同时将每一个buffer通过ngx_chain_t 串起来
 ngx_chain_t *
 ngx_create_chain_of_bufs(ngx_pool_t *pool, ngx_bufs_t *bufs)
 {
@@ -123,6 +133,12 @@ ngx_create_chain_of_bufs(ngx_pool_t *pool, ngx_bufs_t *bufs)
 }
 
 
+// 复制一个ngx_chain_t 到另一个chain
+// ngx_chain_t **chain 指向一个ngx_chain_t * 的指针
+// 通过for loop遍历chain，并记录最后一个ngx_chain_t 到ngx_chain_t **ll
+// 遍历ngx_chain_t *in
+//     在pool中申请新的ngx_chain_t，将in->buf 转移到新的 cl 中
+//     记录最后一个ngx_chain_t 到ll中
 ngx_int_t
 ngx_chain_add_copy(ngx_pool_t *pool, ngx_chain_t **chain, ngx_chain_t *in)
 {
@@ -151,7 +167,9 @@ ngx_chain_add_copy(ngx_pool_t *pool, ngx_chain_t **chain, ngx_chain_t *in)
     return NGX_OK;
 }
 
-
+// 从free chain中获取buf
+// 若free有ngx_chain_t，则从free中获取一个buffer节点
+// 否则从pool中新创一个
 ngx_chain_t *
 ngx_chain_get_free_buf(ngx_pool_t *p, ngx_chain_t **free)
 {
@@ -179,37 +197,44 @@ ngx_chain_get_free_buf(ngx_pool_t *p, ngx_chain_t **free)
     return cl;
 }
 
-
+//
 void
 ngx_chain_update_chains(ngx_chain_t **free, ngx_chain_t **busy,
     ngx_chain_t **out, ngx_buf_tag_t tag)
 {
     ngx_chain_t  *cl;
 
+    // 如果busy为null，则将busy设为out
     if (*busy == NULL) {
         *busy = *out;
 
     } else {
+        // 遍历busy到最后一个节点，记录为cl
         for (cl = *busy; cl->next; cl = cl->next) { /* void */ }
 
+        // 拼接out到busy后面
         cl->next = *out;
     }
 
     *out = NULL;
 
     while (*busy) {
+        // 若buf的空闲大小不为0，则break
         if (ngx_buf_size((*busy)->buf) != 0) {
             break;
         }
 
+        // 处理buf空闲大小为 0 的ngx_chain_t，判断tag类型是否一致，否则continue
         if ((*busy)->buf->tag != tag) {
             *busy = (*busy)->next;
             continue;
         }
 
+        // 清空该busy 节点的数据
         (*busy)->buf->pos = (*busy)->buf->start;
         (*busy)->buf->last = (*busy)->buf->start;
 
+        // 将busy里清空的buf放到free list上
         cl = *busy;
         *busy = cl->next;
         cl->next = *free;
