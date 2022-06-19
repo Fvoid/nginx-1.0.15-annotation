@@ -8,7 +8,9 @@
 #include <ngx_config.h>
 #include <ngx_core.h>
 
-
+// 创建链表节点
+// 先从存储池申请ngx_list 元数据结构
+// 再从存储池申请 n * size 大小的内存
 ngx_list_t *
 ngx_list_create(ngx_pool_t *pool, ngx_uint_t n, size_t size)
 {
@@ -34,7 +36,8 @@ ngx_list_create(ngx_pool_t *pool, ngx_uint_t n, size_t size)
     return list;
 }
 
-
+// 添加一个元素到list中
+// 返回空元素的内存地址
 void *
 ngx_list_push(ngx_list_t *l)
 {
@@ -52,6 +55,7 @@ ngx_list_push(ngx_list_t *l)
             return NULL;
         }
 
+        // 从内存池中申请输入list节点同等大小内存的空间
         last->elts = ngx_palloc(l->pool, l->nalloc * l->size);
         if (last->elts == NULL) {
             return NULL;
@@ -64,6 +68,7 @@ ngx_list_push(ngx_list_t *l)
         l->last = last;
     }
 
+    // 计算空闲内存的地址
     elt = (char *) last->elts + l->size * last->nelts;
     last->nelts++;
 
