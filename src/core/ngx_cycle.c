@@ -1024,7 +1024,8 @@ ngx_delete_pidfile(ngx_cycle_t *cycle)
     }
 }
 
-
+// nginx的信号处理
+// 通过获取已经启动的nginx进程pid，对进程发送信号操作
 ngx_int_t
 ngx_signal_process(ngx_cycle_t *cycle, char *sig)
 {
@@ -1036,11 +1037,14 @@ ngx_signal_process(ngx_cycle_t *cycle, char *sig)
 
     ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0, "signal process started");
 
+    // 从全局的conf_ctx中获取core_module的配置信息
     ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
-
+    
+    // 获取pid的信息
     file.name = ccf->pid;
     file.log = cycle->log;
 
+    // 通过/usr/local/nginx/logs/nginx.pid 获取pid
     file.fd = ngx_open_file(file.name.data, NGX_FILE_RDONLY,
                             NGX_FILE_OPEN, NGX_FILE_DEFAULT_ACCESS);
 
@@ -1072,6 +1076,7 @@ ngx_signal_process(ngx_cycle_t *cycle, char *sig)
         return 1;
     }
 
+    // 真正的处理信号
     return ngx_os_signal_process(cycle, sig, pid);
 
 }

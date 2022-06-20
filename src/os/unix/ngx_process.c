@@ -575,6 +575,7 @@ ngx_os_signal_process(ngx_cycle_t *cycle, char *name, ngx_int_t pid)
 {
     ngx_signal_t  *sig;
 
+    // 遍历所有信号，匹配信号名称，向pid发送信号数字
     for (sig = signals; sig->signo != 0; sig++) {
         if (ngx_strcmp(name, sig->name) == 0) {
             if (kill(pid, sig->signo) != -1) {

@@ -9,7 +9,7 @@
 #include <ngx_core.h>
 #include <nginx.h>
 
-
+// static 函数只为该文件可见
 static ngx_int_t ngx_add_inherited_sockets(ngx_cycle_t *cycle);
 static ngx_int_t ngx_get_options(int argc, char *const *argv);
 static ngx_int_t ngx_process_options(ngx_cycle_t *cycle);
@@ -195,7 +195,23 @@ static char        *ngx_signal;
 
 static char **ngx_os_environ;
 
-
+// main 启动流程
+// 1. ngx_get_options -- 解析命令行中的参数
+// 2. ngx_time_init   -- 初始化并更新时间，如全局变量ngx_cached_time
+// 3. ngx_getpid      -- 获取当前进程的pid
+// 4. ngx_log_init    -- 初始化日志，并得到日志的文件句柄ngx_log_file.fd
+// 5. init_cycle      -- 初始化init-cycle nginx 的全局变量
+// 6. ngx_save_argv   -- 保存nginx 命令中的参数和变量，放到全局变量ngx_argv中
+// 7. ngx_process_options -- 将ngx_get_options中获得这些参数的值放入到ngx_cycle中
+// 8. ngx_os_init     -- 初始化系统相关变量
+// 9. ngx_crc32_table_init  -- 初始化一致性hash表，主要作用是加快查询
+// 10. ngx_add_inherited_sockets -- 主要是继承了socket的套接字，作用是热启动时需要平滑过度
+// 11. ngx_preinit_modules       -- 主要是前置的初始化模块，对模块进行编号处理
+// 12. ngx_init_cycle            -- 完成全局变量cycle的初始化
+// 13. ngx_signal_process        -- 如果有信号，则进入ngx_signal_process方法，如./nginx -s stop
+// 14. ngx_get_conf              -- 得到核心模块ngx_core_conf的配置文件指针
+// 15. ngx_create_pidfile        -- 创建pid文件
+// 16. ngx_master_process_cycle  -- 开始创建多个nginx子进程，然后进入进程循环
 int ngx_cdecl
 main(int argc, char *const *argv)
 {
@@ -415,7 +431,9 @@ main(int argc, char *const *argv)
     return 0;
 }
 
-
+// 继承Scoket文件句柄
+// 套接字存放在NGINX的全局环境变量中， NGINX="16000:165000:166000"
+// 继承后的socket文件句柄放到ngx_cycle.listening中
 static ngx_int_t
 ngx_add_inherited_sockets(ngx_cycle_t *cycle)
 {
@@ -432,6 +450,7 @@ ngx_add_inherited_sockets(ngx_cycle_t *cycle)
     ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0,
                   "using inherited sockets from \"%s\"", inherited);
 
+    // 初始化listening数组，使里面存有 10 个ngx_listening_t的数组
     if (ngx_array_init(&cycle->listening, cycle->pool, 10,
                        sizeof(ngx_listening_t))
         != NGX_OK)
@@ -439,8 +458,10 @@ ngx_add_inherited_sockets(ngx_cycle_t *cycle)
         return NGX_ERROR;
     }
 
+    // 遍历句柄字符串
     for (p = inherited, v = p; *p; p++) {
         if (*p == ':' || *p == ';') {
+            // 转换从v 到 p之间的字符为数字
             s = ngx_atoi(v, p - v);
             if (s == NGX_ERROR) {
                 ngx_log_error(NGX_LOG_EMERG, cycle->log, 0,
@@ -449,7 +470,8 @@ ngx_add_inherited_sockets(ngx_cycle_t *cycle)
                               " of the variable", v);
                 break;
             }
-
+            
+            // 更新数字字符串起始位置
             v = p + 1;
 
             ls = ngx_array_push(&cycle->listening);
