@@ -9,7 +9,7 @@
 #include <ngx_core.h>
 
 // 从hash表中读取一个元素
-// 
+//
 void *
 ngx_hash_find(ngx_hash_t *hash, ngx_uint_t key, u_char *name, size_t len)
 {
@@ -29,10 +29,14 @@ ngx_hash_find(ngx_hash_t *hash, ngx_uint_t key, u_char *name, size_t len)
 
     // 当bucket有元素时，执行
     while (elt->value) {
+        // 判断当前bucket的key len是否一直
+        // 若不一致，则跳到下一个bucket
         if (len != (size_t) elt->len) {
             goto next;
         }
 
+        // 当key长度相等
+        // 寻找是否key的名称也相同，若不同则寻找下一个elt
         for (i = 0; i < len; i++) {
             if (name[i] != elt->name[i]) {
                 goto next;
@@ -43,6 +47,8 @@ ngx_hash_find(ngx_hash_t *hash, ngx_uint_t key, u_char *name, size_t len)
 
     next:
 
+        // name + len 的地址指向下一个elt的起始位置
+        // elt之间由 （void*）指针进行分隔，所以需要找到根据（void*）大小对齐的下一个内存地址
         elt = (ngx_hash_elt_t *) ngx_align_ptr(&elt->name[0] + elt->len,
                                                sizeof(void *));
         continue;

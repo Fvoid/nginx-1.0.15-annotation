@@ -14,7 +14,7 @@ static u_char *ngx_sprintf_num(u_char *buf, u_char *last, uint64_t ui64,
 static ngx_int_t ngx_decode_base64_internal(ngx_str_t *dst, ngx_str_t *src,
     const u_char *basis);
 
-
+// src装换n个字符为lowercase 到 dst
 void
 ngx_strlow(u_char *dst, u_char *src, size_t n)
 {
@@ -26,7 +26,7 @@ ngx_strlow(u_char *dst, u_char *src, size_t n)
     }
 }
 
-
+// 复制n个字符到dst
 u_char *
 ngx_cpystrn(u_char *dst, u_char *src, size_t n)
 {
@@ -50,7 +50,7 @@ ngx_cpystrn(u_char *dst, u_char *src, size_t n)
     return dst;
 }
 
-
+// 复制src到pool中申请内存的dst
 u_char *
 ngx_pstrdup(ngx_pool_t *pool, ngx_str_t *src)
 {
@@ -558,6 +558,7 @@ ngx_sprintf_num(u_char *buf, u_char *last, uint64_t ui64, u_char zero,
  * instead of the u_char's, because they are slightly faster.
  */
 
+// 对s1 和 s2进行小写比较
 ngx_int_t
 ngx_strcasecmp(u_char *s1, u_char *s2)
 {
@@ -567,6 +568,7 @@ ngx_strcasecmp(u_char *s1, u_char *s2)
         c1 = (ngx_uint_t) *s1++;
         c2 = (ngx_uint_t) *s2++;
 
+        // 对大写字符 or 0x20 则转换为小写
         c1 = (c1 >= 'A' && c1 <= 'Z') ? (c1 | 0x20) : c1;
         c2 = (c2 >= 'A' && c2 <= 'Z') ? (c2 | 0x20) : c2;
 

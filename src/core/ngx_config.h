@@ -94,6 +94,10 @@ typedef intptr_t        ngx_flag_t;
 #define NGX_ALIGNMENT   sizeof(unsigned long)    /* platform word */
 #endif
 
+// ngx内存对齐
+// a 是2的幂； ~（a-1）则是将a少一位的其余位都为1，然后取反为0
+// 将 （d + （a-1））是确保对齐的是比d大的倍数
+// 将 以上取 & 则是对齐位数
 #define ngx_align(d, a)     (((d) + (a - 1)) & ~(a - 1))
 #define ngx_align_ptr(p, a)                                                   \
     (u_char *) (((uintptr_t) (p) + ((uintptr_t) a - 1)) & ~((uintptr_t) a - 1))

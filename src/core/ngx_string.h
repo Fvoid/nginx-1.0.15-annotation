@@ -14,11 +14,12 @@
 
 
 typedef struct {
-    size_t      len;
-    u_char     *data;
+    size_t      len; // string长度
+    u_char     *data; // string的数据指针
 } ngx_str_t;
 
 
+// NGX的key value结构
 typedef struct {
     ngx_str_t   key;
     ngx_str_t   value;
